@@ -130,3 +130,6 @@ dmypy.json
 
 feature-sets/
 GlobalLandTemperaturesByCity.csv
+
+# Ignore intellij-based IDE project folders
+.idea/
