@@ -88,5 +88,3 @@ def get_data_feature_sets():
                 data[friendly_feature_set].append(this_feature_set)
 
     return data
-
-get_data_feature_sets()
