@@ -3,6 +3,7 @@ import os
 
 FEATURE_SET_DIRECTORY = './feature-sets'
 
+# Organized by {country}/{city}/{feature_set}
 def get_data_structured():
 
     # Check if the feature sets directory exists
@@ -42,6 +43,7 @@ def get_data_structured():
 
     return data
 
+# No country or city data
 def get_data_feature_sets():
 
     # Check if the feature sets directory exists
