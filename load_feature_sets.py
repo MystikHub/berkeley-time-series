@@ -1,9 +1,12 @@
 import csv
 import os
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 FEATURE_SET_DIRECTORY = './feature-sets'
 
 # Organized by {country}/{city}/{feature_set}
+Feature_Set_Map = {1: 'feature-set-1', 2: 'feature-set-2', 3: 'feature-set-3'}
 def get_data_structured():
 
     # Check if the feature sets directory exists
@@ -64,7 +67,7 @@ def get_data_feature_sets():
 
     # Loop through the feature-sets directory
     for country_name in os.listdir(FEATURE_SET_DIRECTORY):
-
+        print("Loading {}".format(country_name))
         # Loop through the cities in each country
         for city_name in os.listdir("{}/{}".format(FEATURE_SET_DIRECTORY, country_name)):
 
@@ -90,3 +93,20 @@ def get_data_feature_sets():
                 data[friendly_feature_set].append(this_feature_set)
 
     return data
+
+def prepare_data_split(raw_data, feature_type):
+    #feature_type in 1, 2 or 3
+    feature_key_str = Feature_Set_Map[feature_type]
+    feature_set_raw = raw_data[feature_key_str]
+    feature_set_data = []
+    for city_data in feature_set_raw:
+        feature_set_data.extend(city_data)
+    feature_set_data = np.array(feature_set_data)
+    Y,X = feature_set_data[:,0], feature_set_data[:,1:]
+    x_train, x_test, y_train, y_test = train_test_split(X,Y,test_size=.08)
+    return x_train, x_test, y_train, y_test
+raw_data = get_data_feature_sets()
+
+#retrieve splitted data for feature set 1:
+x_train, x_test, y_train, y_test = prepare_data_split(raw_data, 1)
+print("Loading feature sets complete: \n-#training examples: {}\n-#test examples: {}".format(x_train.shape[0], x_test.shape[0]))
