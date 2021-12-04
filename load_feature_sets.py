@@ -1,6 +1,7 @@
 import csv
-import os
 import numpy as np
+import os
+import pandas
 from sklearn.model_selection import train_test_split
 
 FEATURE_SET_DIRECTORY = './feature-sets'
@@ -91,6 +92,49 @@ def get_data_feature_sets():
                         this_feature_set.append(row)
                 
                 data[friendly_feature_set].append(this_feature_set)
+
+    return data
+
+# Identical to the previous function, but instead of arrays of comma separated
+#   values, an array of {feature_set}/{city}/[data_frames] is returned
+def get_data_frames():
+
+    # Check if the feature sets directory exists
+    if not os.path.isdir(FEATURE_SET_DIRECTORY):
+        print("Couldn't find any feature sets")
+        print("Did you run 'python3 make-feature-sets.py'?")
+        exit(1)
+
+    # Dictionary to store our feature sets
+    # Each element in this array will correspond to one of the three feature sets
+    # We defined in the "make_feature_sets.py" file
+    #   It's set up this way to easily add other feature sets later rather than
+    #   hard-coding feature-set-1, feature-set-2, and feature-set-3
+    #
+    # Furthermore, each of the feature sets in this dictionary will be a list
+    #   of csv files corresponding to each country and city
+    data = {}
+
+    # Loop through the feature-sets directory
+    for country_name in os.listdir(FEATURE_SET_DIRECTORY):
+        print("Loading {}\r".format(country_name))
+        # Loop through the cities in each country
+        for city_name in os.listdir("{}/{}".format(FEATURE_SET_DIRECTORY, country_name)):
+
+            # Loop through each feature set
+            for feature_set in os.listdir("{}/{}/{}".format(FEATURE_SET_DIRECTORY, country_name, city_name)):
+
+                # Trim off the ".csv"
+                if feature_set.endswith(".csv"):
+                    friendly_feature_set = feature_set.split(".")[0]
+
+                if friendly_feature_set not in data:
+                    data[friendly_feature_set] = []
+
+                # Load the pandas dataframe for this feature set
+                data_frame = pandas.read_csv("{}/{}/{}/{}".format(FEATURE_SET_DIRECTORY, country_name, city_name, feature_set))
+                
+                data[friendly_feature_set].append(data_frame)
 
     return data
 
