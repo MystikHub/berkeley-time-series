@@ -130,7 +130,7 @@ def get_feature_set(feature_set_type, city_data):
             all_ids = [index-1*m for m in range(1,13)]
 
         for i in all_ids:
-            if i in range(0, total):
+            if i >= 0 and i < total:
                 src.append(city_data[i][1])
             else:
                 src.append(last_valid_tem + np.random.uniform(-1, 1))
