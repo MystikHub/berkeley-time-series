@@ -4,33 +4,45 @@ from sklearn.model_selection import train_test_split
 import load_feature_sets
 import matplotlib.pyplot as plt
 
-feature_sets = load_feature_sets.get_data_frames()
+N_FEATURE_SETS = 3
 
 # Result from cross-validation to be used in the final training and predictions
 cross_validated_c = 0.
 # Boolean toggle for whether this script does cross validation or training,
 #   prediction, and evaluation
 cross_validate = True
-if cross_validate:
-    average_errors = []
-    # Loop through the three types of feature sets
-    for feature_set_type, feature_set in feature_sets.items():
 
-        # Before we train the model on our full data, do some cross validation
-        #   on a subset of it
-        #   Try using the following 5 values for C
+if cross_validate:
+
+    # Array where each element is the average mean error for each c value
+    feature_set_c_errors = []
         C_range = [1, 10, 100, 1000]
+
+    for feature_set_number in range(1, N_FEATURE_SETS + 1):
 
         # Keep track of the errors for each C value in this feature set for a
         #   graph
         this_feature_set_average_errors = []
+
+        # Before we train the model on our full data, do some cross validation
+        #   on a subset of it
+        #   Try using the values in C_range
         for C in C_range:
 
             # Error for all cities in this feature set with this C value
             total_error = 0
+            total_error_count = 0
 
-            # Look at each city in this feature set
-            for data_frame in feature_set:
+            # Loop through each country
+            for country in load_feature_sets.get_countries():
+
+                # Loop through each city
+                for city in load_feature_sets.get_cities(country):
+                    print("Processing feature set: {}, C: {}, country: {}, city: {}".format(feature_set_number, C, country, city), end='\r')
+
+                    # Get this city's data frame
+                    data_frame = load_feature_sets.get_data_frame(country, city, feature_set_number)
+
                 shape = data_frame.shape
                 n_columns = shape[1]
 
@@ -53,15 +65,17 @@ if cross_validate:
                 error = mean_squared_error(y_test, y_pred)
 
                 total_error = total_error + error
+                    total_error_count += 1
+                    del data_frame
             
             # Save the average error for this feature set and C value
-            this_feature_set_average_errors.append(total_error / len(feature_set))
+            this_feature_set_average_errors.append(total_error / total_error_count)
         
-        average_errors.append(this_feature_set_average_errors)
+        feature_set_c_errors.append(this_feature_set_average_errors)
 
-    plt.plot(C_range, average_errors[0])
-    plt.plot(C_range, average_errors[1])
-    plt.plot(C_range, average_errors[2])
+    plt.plot(C_range, feature_set_c_errors[0])
+    plt.plot(C_range, feature_set_c_errors[1])
+    plt.plot(C_range, feature_set_c_errors[2])
     plt.legend(['Feature set: past 5 years and months',
                 'Feature set: past 3 years and months',
                 'Feature set: past 12 months'])
@@ -70,7 +84,7 @@ if cross_validate:
     plt.title("Mean square error of a lasso regression model with different penalties")
     plt.show()
 
-    print(average_errors)
+    print(feature_set_c_errors)
 
 else:
     # Training and prediction on the full data set
