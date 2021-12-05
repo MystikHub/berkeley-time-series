@@ -10,9 +10,9 @@ N_FEATURE_SETS = 3
 cross_validated_c = 0.
 # Boolean toggle for whether this script does cross validation or training,
 #   prediction, and evaluation
-cross_validate = True
+mode = "Predict"
 
-if cross_validate:
+if mode == "Cross validate":
 
     # Array where each element is the average mean error for each c value
     feature_set_c_errors = []
@@ -66,7 +66,6 @@ if cross_validate:
 
                     total_error = total_error + error
                     total_error_count += 1
-                    del data_frame
             
             # Save the average error for this feature set and C value
             this_feature_set_average_errors.append(total_error / total_error_count)
@@ -86,11 +85,35 @@ if cross_validate:
 
     print(feature_set_c_errors)
 
-else:
-    # Training and prediction on the full data set
-    for all_cities in feature_set_type:
+elif mode == "Predict":
 
-        # Start the lasso regression training and evaluation
-        for city_data in all_cities:
-            lasso_regression = Lasso(alpha=(1/cross_validated_c))
-            lasso_regression.fit(feature_sets, temperatures)
+    # Train the model on each city's data set
+    for feature_set_number in range(1, N_FEATURE_SETS + 1):
+
+        # Loop through each country
+        for country in load_feature_sets.get_countries():
+
+            # Loop through each city
+            for city in load_feature_sets.get_cities(country):
+                print("Processing feature set: {}, country: {}, city: {}".format(feature_set_number, country, city), end='\r')
+
+                # Get this city's data frame
+                data_frame = load_feature_sets.get_data_frame(country, city, feature_set_number)
+
+                shape = data_frame.shape
+                n_columns = shape[1]
+
+                # Find x and y for training
+                # x will be training feature sets
+                # y will be day's recorded temperature
+                x = data_frame.iloc[:, range(1, n_columns - 1)]
+                y = data_frame.iloc[:, 0]
+
+                # Manually split the data at an 80:20 ratio
+                # We originally wanted to use sklearn's train_test_split
+                #   function, but it had no way of disabling randomization
+                
+
+                # Train the model
+                lasso_regression = Lasso(alpha=(1/C))
+                lasso_regression.fit(x_train, y_train)
