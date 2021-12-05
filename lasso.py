@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 N_FEATURE_SETS = 3
 
 # Result from cross-validation to be used in the final training and predictions
-cross_validated_c = 0.
+cross_validated_c = 100
 # Boolean toggle for whether this script does cross validation or training,
 #   prediction, and evaluation
 mode = "Predict"
@@ -88,32 +88,54 @@ if mode == "Cross validate":
 elif mode == "Predict":
 
     # Train the model on each city's data set
-    for feature_set_number in range(1, N_FEATURE_SETS + 1):
+    total_error = 0
+    n_cities_processed = 0
+    total_cities = 0
+    for country in load_feature_sets.get_countries():
+        total_cities += len(load_feature_sets.get_cities(country))
 
-        # Loop through each country
-        for country in load_feature_sets.get_countries():
+    # Loop through each country
+    for country in load_feature_sets.get_countries():
 
-            # Loop through each city
-            for city in load_feature_sets.get_cities(country):
-                print("Processing feature set: {}, country: {}, city: {}".format(feature_set_number, country, city), end='\r')
+        # Loop through each city
+        for city in load_feature_sets.get_cities(country):
+            progress = ((n_cities_processed + 1) / total_cities) * 100
+            print("Processing country: {}, city: {}, progress: {:.1f}%".format(country, city, progress), end='\r')
 
-                # Get this city's data frame
-                data_frame = load_feature_sets.get_data_frame(country, city, feature_set_number)
+            # Get this city's data frame for the "Past 5 years and months"
+            #   feature set
+            data_frame = load_feature_sets.get_data_frame(country, city, 1)
 
-                shape = data_frame.shape
-                n_columns = shape[1]
+            shape = data_frame.shape
+            n_rows = shape[0]
+            n_columns = shape[1]
 
-                # Find x and y for training
-                # x will be training feature sets
-                # y will be day's recorded temperature
-                x = data_frame.iloc[:, range(1, n_columns - 1)]
-                y = data_frame.iloc[:, 0]
+            # Find x and y for training
+            # x will be training feature sets
+            # y will be day's recorded temperature
+            x = data_frame.iloc[:, range(1, n_columns - 1)]
+            y = data_frame.iloc[:, 0]
 
-                # Manually split the data at an 80:20 ratio
-                # We originally wanted to use sklearn's train_test_split
-                #   function, but it had no way of disabling randomization
-                
+            # Manually split the data at an 80:20 ratio
+            # We originally wanted to use sklearn's train_test_split
+            #   function, but it had no way of disabling randomization
+            split_train = int(n_rows * 0.8)
+            split_test = int(n_rows * 0.2)
+            x_train = x.head(split_train)
+            y_train = x.head(split_train)
+            x_test = x.tail(split_test)
+            y_test = x.tail(split_test)
 
-                # Train the model
-                lasso_regression = Lasso(alpha=(1/C))
-                lasso_regression.fit(x_train, y_train)
+            # Train the model
+            lasso_regression = Lasso(alpha=(1/cross_validated_c))
+            lasso_regression.fit(x_train, y_train)
+
+            y_pred = lasso_regression.predict(x_test)
+            error = mean_squared_error(y_test, y_pred)
+
+            total_error += error
+            n_cities_processed += 1
+    
+    average_error = total_error / n_cities_processed
+    print()
+    print("Average error: {}".format(average_error))
