@@ -1,8 +1,10 @@
 import csv
 import os
-
-DEBUG_MAX_PROCESSED_LINES = -1
+import math
+import numpy as np
+DEBUG_MAX_PROCESSED_LINES = 100
 FEATURE_SET_DIRECTORY = './feature-sets'
+FEATURE_SET_DIRECTORY_BASELINE = './feature-sets-baseline'
 FEATURE_SET_TYPES = [
     "Past 5 years and months",
     "Past 3 years and months",
@@ -34,7 +36,7 @@ if "GlobalLandTemperaturesByCity.csv" not in os.listdir('.'):
     
 # Set up CSV reader
 countries = {}
-berkeley_data = open('GlobalLandTemperaturesByCity.csv', 'r')
+berkeley_data = open('GlobalLandTemperaturesByCity.csv', 'r',encoding='utf-8')
 csv_reader = csv.reader(berkeley_data)
 
 # Function to clean our data points
@@ -46,6 +48,7 @@ def clean_data_point(csv_row):
 
 # Read data from CSV reader to our country map
 line_count = 0
+valid_points = 0
 for row in csv_reader:
     if line_count > DEBUG_MAX_PROCESSED_LINES and DEBUG_MAX_PROCESSED_LINES != -1:
         break
@@ -76,16 +79,20 @@ for row in csv_reader:
     if line_count % 100000 == 0:
         print("Read {} data points\r".format(line_count), end='')
 
+    if row[1] != '':
+        valid_points += 1
+
     line_count += 1
 
-print()
+# Used in the report
+print("Found {} non-zero data points".format(valid_points))
 
 # Takes a feature set type and a city's data then and returns a list of strings
 #   to be written to that city's feature set file
 # feature_set_type: string
 # city_data: [[string]]
 # returns: [string]
-def get_feature_set(feature_set_type, city_data):
+def get_feature_set_old(feature_set_type, city_data):
     # Placeholder, retuns a list of strings of the city's data
     return_list = []
     for csv_row in city_data:
@@ -98,16 +105,91 @@ def get_feature_set(feature_set_type, city_data):
                 first_index = False
             else:
                 this_line += "," + value
-        
         return_list.append(this_line + "\n")
-    
+    return return_list
+
+def get_feature_set(feature_set_type, city_data):
+    # Placeholder, retuns a list of strings of the city's data
+    return_list = []
+    last_valid_tem = -1
+    total = len(city_data)
+
+    for index, csv_row in enumerate(city_data):
+        #padding empty values.
+        if csv_row[1]:
+            tem = float(csv_row[1])
+            last_valid_tem = tem
+
+        else:
+            csv_row[1] = last_valid_tem + np.random.uniform(-1, 1)
+        tgt_tem = csv_row[1]
+        src = []
+        if feature_set_type == "Past 5 years and months":
+            p5_y_index = [index-12*y for y in range(1,6)]
+            p5_m_index = [index-1*m for m in range(1,6)]
+            all_ids = p5_y_index+p5_m_index
+        elif feature_set_type == "Past 3 years and months":
+            p3_y_index = [index-12*y for y in range(1,4)]
+            p3_m_index = [index-1*m for m in range(1,4)]
+            all_ids = p3_y_index+p3_m_index
+        else:
+            all_ids = [index-1*m for m in range(1,13)]
+
+        for i in all_ids:
+            if i >= 0 and i < total:
+                src.append(city_data[i][1])
+            else:
+                src.append(last_valid_tem + np.random.uniform(-1, 1))
+        feature_data = [tgt_tem] + src
+        # first element is tgt, rest is src.
+        feature_data = [str(t) for t in feature_data]
+
+        return_list.append(','.join(feature_data)+'\n')
+    return return_list
+
+def get_feature_set_Baseline(feature_set_type, city_data, baseline):
+    return_list = []
+    last_valid_tem = -1
+    total = len(city_data)
+    # Placeholder, retuns a list of strings of the city's data
+    for index, csv_row in enumerate(city_data):
+        print('inddd: ',index)
+        #padding empty values.
+        if csv_row[1]:
+            tem = float(csv_row[1])
+            last_valid_tem = tem
+        else:
+            csv_row[1] = last_valid_tem + np.random.uniform(-1, 1)
+
+        tgt_tem = csv_row[1]
+        src = []
+        #p5_y_index = [index-12*y for y in range(1,6)]
+        #p5_m_index = [index-1*m for m in range(1,6)]
+        #all_ids = p5_y_index+p5_m_index
+        p5_yf_index = [index+12*y for y in range(1,baseline)]
+        p5_mf_index = [index+1*m for m in range(1,baseline)]
+        future_ids = p5_yf_index+p5_mf_index
+        #print('all_ids M',all_ids)
+        print('future_ids M',future_ids)
+
+        for i in future_ids:
+            if i >= 0 and i < total:
+                src.append(city_data[i][1])
+            else:
+                src.append(last_valid_tem + np.random.uniform(-1, 1))
+        feature_data = [tgt_tem] + src
+        # first element is tgt, rest is src.
+        feature_data = [str(t) for t in feature_data]
+        print('feature__Data future',feature_data)
+
+        return_list.append(','.join(feature_data)+'\n')
     return return_list
 
 # Loop through our csv and make files and folders for each data point
 progress = 0
 for country, country_data in countries.items():
     percentage_complete = 100 * progress / (len(countries))
-    print("Processing {:<15} ({:.1f}% complete)\r".format(country, percentage_complete), end='')
+    #print("Processing {:<15} ({:.1f}% complete)\r".format(country, percentage_complete), end='')
     
     # Loop through each city
     for city, city_data in country_data.items():
@@ -136,3 +218,39 @@ for country, country_data in countries.items():
 
 print("Processing complete! Data has been written to " + FEATURE_SET_DIRECTORY)
 print("It's organized by: feature-sets/{country}/{city}/feature-set-n.csv")
+
+# Loop through our csv and make files and folders for each data point
+progressBasline = 0
+for country, country_data in countries.items():
+    percentage_complete = 100 * progress / (len(countries))
+    print("Processing FUTURE {:<15} ({:.1f}% complete)\r".format(country, percentage_complete), end='')
+    print('country',country)
+    if(country == 'Ireland'):
+        # Loop through each city
+        for city, city_data in country_data.items():
+            if(city=='Dublin'):
+                # Make a folder for this country and city if it doesn't already exist
+                country_city_path = "{}/{}/{}".format(FEATURE_SET_DIRECTORY_BASELINE, country, city)
+                if not os.path.isdir(country_city_path):
+                    os.makedirs(country_city_path)
+                
+                # Open a file for each feature set
+                feature_type_indexBaseline = 1
+                for feature_set_type in FEATURE_SET_TYPES:
+                    # Start appending into the feature set file
+                    data_file_path = country_city_path + "/feature-set-baseline"
+                    data_file_path += str(feature_type_indexBaseline) + ".csv"
+
+                    data_file = open(data_file_path, 'a')
+
+                    # The function below takes a feature set type and a city's data
+                    feature_setFuture = get_feature_set_Baseline(feature_set_type, city_data,21)
+                    data_file.writelines(feature_setFuture)
+                    data_file.close()
+
+                    feature_type_indexBaseline += 1
+    else:
+        print('in else')       
+        continue
+print("Processing complete! Data has been written to " + FEATURE_SET_DIRECTORY_BASELINE)
+print("It's organized by: feature-sets/{country}/{city}//feature-set-baseline-n.csv")
