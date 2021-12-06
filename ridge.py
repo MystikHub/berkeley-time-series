@@ -1,19 +1,3 @@
-# Berkeley Earth Time Series Prediction
-# Copyright (C) 2021 MystikHub, jkanav12, ssq07
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-# 
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
@@ -24,12 +8,12 @@ import matplotlib.pyplot as plt
 N_FEATURE_SETS = 3
 
 # Result from cross-validation to be used in the final training and predictions
-cross_validated_c = 0.
+cross_validated_c = 10
 # Boolean toggle for whether this script does cross validation or training,
 #   prediction, and evaluation
-cross_validate = True
+mode = "Evaluate"
 
-if cross_validate:
+if mode == "Cross validate":
 
     # Array where each element is the average mean error for each c value
     feature_set_c_errors = []
@@ -100,4 +84,75 @@ if cross_validate:
     plt.show()
 
     print(feature_set_c_errors)
+elif mode == "Evaluate":
 
+    # Train the model on each city's data set
+    # Keep track of the ridge regression model's error and the baseline's error
+    #   separately
+    model_total_error = 0
+    baseline_total_error = 0
+    n_cities_processed = 0
+
+    # Used in the progress indicator
+    total_cities = 0
+    for country in load_feature_sets.get_countries():
+        total_cities += len(load_feature_sets.get_cities(country))
+
+    # Loop through each country
+    for country in load_feature_sets.get_countries():
+
+        # Loop through each city
+        for city in load_feature_sets.get_cities(country):
+            progress = ((n_cities_processed + 1) / total_cities) * 100
+            print("Processing country: {}, city: {}, progress: {:.1f}%".format(country, city, progress), end='\r')
+
+            # Get this city's data frame for the "Past 5 years and months"
+            #   feature set
+            data_frame = load_feature_sets.get_data_frame(country, city, 1)
+
+            shape = data_frame.shape
+            n_rows = shape[0]
+            n_columns = shape[1]
+
+            # Find x and y for training
+            # x will be training feature sets
+            # y will be day's recorded temperature
+            x = data_frame.iloc[:, range(1, n_columns - 1)]
+            y = data_frame.iloc[:, 0]
+
+            # Manually split the data at an 80:20 ratio
+            # We originally wanted to use sklearn's train_test_split
+            #   function, but it had no way of disabling randomization
+            # Here, I did the split manually in preparation for creating
+            #   feature sets for future values (where predictions depend on
+            #   their previous values, i.e. their order matters)
+            split_train = int(n_rows * 0.8)
+            split_test = int(n_rows * 0.2)
+            x_train = x.head(split_train)
+            y_train = y.head(split_train)
+            x_test = x.tail(split_test)
+            y_test = y.tail(split_test)
+
+            # Train the model
+            ridge_regression = Ridge(alpha=(1 / cross_validated_c))
+            ridge_regression.fit(x_train, y_train)
+
+            # Get the predictions done by the regression model
+            model_pred = ridge_regression.predict(X=x_test)
+            model_error = mean_squared_error(y_test, model_pred)
+
+            # Make the baseline predictions for the same x values
+            baseline_pred = x_test.mean(axis=1)
+            baseline_error = mean_squared_error(y_test, baseline_pred)
+
+            model_total_error += model_error
+            baseline_total_error += baseline_error
+            n_cities_processed += 1
+
+    print()
+
+    model_average_error = model_total_error / n_cities_processed
+    print("Model average error: {}".format(model_average_error))
+
+    baseline_average_error = baseline_total_error / n_cities_processed
+    print("Baseline average error: {}".format(baseline_average_error))
