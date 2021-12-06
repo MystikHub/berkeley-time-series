@@ -147,6 +147,7 @@ def get_feature_set(feature_set_type, city_data):
         return_list.append(','.join(feature_data)+'\n')
     return return_list
 
+'''
 def get_feature_set_Baseline(feature_set_type, city_data, baseline):
     return_list = []
     last_valid_tem = -1
@@ -184,6 +185,7 @@ def get_feature_set_Baseline(feature_set_type, city_data, baseline):
 
         return_list.append(','.join(feature_data)+'\n')
     return return_list
+'''
 
 # Loop through our csv and make files and folders for each data point
 progress = 0
@@ -219,6 +221,7 @@ for country, country_data in countries.items():
 print("Processing complete! Data has been written to " + FEATURE_SET_DIRECTORY)
 print("It's organized by: feature-sets/{country}/{city}/feature-set-n.csv")
 
+'''
 # Loop through our csv and make files and folders for each data point
 progressBasline = 0
 for country, country_data in countries.items():
@@ -254,3 +257,4 @@ for country, country_data in countries.items():
         continue
 print("Processing complete! Data has been written to " + FEATURE_SET_DIRECTORY_BASELINE)
 print("It's organized by: feature-sets/{country}/{city}//feature-set-baseline-n.csv")
+'''
