@@ -47,6 +47,7 @@ def clean_data_point(csv_row):
 
 # Read data from CSV reader to our country map
 line_count = 0
+valid_points = 0
 for row in csv_reader:
     if line_count > DEBUG_MAX_PROCESSED_LINES and DEBUG_MAX_PROCESSED_LINES != -1:
         break
@@ -77,8 +78,13 @@ for row in csv_reader:
     if line_count % 100000 == 0:
         print("Read {} data points\r".format(line_count), end='')
 
+    if row[1] != '':
+        valid_points += 1
+
     line_count += 1
 
+# Used in the report
+print("Found {} non-zero data points".format(valid_points))
 
 # Takes a feature set type and a city's data then and returns a list of strings
 #   to be written to that city's feature set file
