@@ -11,7 +11,7 @@ This project uses Python and requires the following packages from pip:
 
 ## Preparing the feature sets
 
-Download the data from [Kaggle](https://www.kaggle.com/berkeleyearth/climate-change-earth-surface-temperature-data) and extract the "GlobalLandTemperaturesByCity.csv" file into the repository's directory. Then, use `python3 make-feature-sets.py` to export the various different feature set files into a `feature-sets` directory.
+Download the data from [Berkeley Earth](https://www.kaggle.com/berkeleyearth/climate-change-earth-surface-temperature-data) and extract the "GlobalLandTemperaturesByCity.csv" file into the repository's directory. Then, use `python3 make-feature-sets.py` to export the various different feature set files into a `feature-sets` directory.
 
 ## Running the machine learning models
 
