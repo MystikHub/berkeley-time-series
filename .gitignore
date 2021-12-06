@@ -130,3 +130,7 @@ dmypy.json
 
 feature-sets/
 GlobalLandTemperaturesByCity.csv
+preprocess_climate_data.zip
+
+# Ignore intellij-based IDE project folders
+.idea/
