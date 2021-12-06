@@ -1,5 +1,6 @@
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import KFold
 from sklearn.model_selection import train_test_split
 import load_feature_sets
 import matplotlib.pyplot as plt
@@ -52,20 +53,19 @@ if mode == "Cross validate":
                     x = data_frame.iloc[:, range(1, n_columns - 1)]
                     y = data_frame.iloc[:, 0]
 
-                    # Train the model on training data, then make predictions on the
-                    #   test data. Use the predictions to measure the mean square
-                    #   error
-                    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+                    # Split the data into 5 "folds" and train then evaluate
+                    kf = KFold(n_splits=5)
+                    for train, test in kf.split(x):
 
-                    # Train the model
-                    lasso_regression = Lasso(alpha=(1/C))
-                    lasso_regression.fit(x_train, y_train)
+                        # Train the model
+                        lasso_regression = Lasso(alpha=(1/C))
+                        lasso_regression.fit(x.values[train], y.values[train])
 
-                    y_pred = lasso_regression.predict(x_test)
-                    error = mean_squared_error(y_test, y_pred)
+                        y_pred = lasso_regression.predict(x.values[test])
+                        error = mean_squared_error(y.values[test], y_pred)
 
-                    total_error = total_error + error
-                    total_error_count += 1
+                        total_error = total_error + error
+                        total_error_count += 1
             
             # Save the average error for this feature set and C value
             this_feature_set_average_errors.append(total_error / total_error_count)
