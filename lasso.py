@@ -2,6 +2,7 @@ from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.model_selection import train_test_split
+import baseline
 import load_feature_sets
 import matplotlib.pyplot as plt
 
@@ -11,7 +12,7 @@ N_FEATURE_SETS = 3
 cross_validated_c = 100
 # Boolean toggle for whether this script does cross validation or training,
 #   prediction, and evaluation
-mode = "Predict"
+mode = "Evaluate"
 
 if mode == "Cross validate":
 
@@ -85,11 +86,16 @@ if mode == "Cross validate":
 
     print(feature_set_c_errors)
 
-elif mode == "Predict":
+elif mode == "Evaluate":
 
     # Train the model on each city's data set
-    total_error = 0
+    # Keep track of the lasso regression model's error and the baseline's error
+    #   separately
+    model_total_error = 0
+    baseline_total_error = 0
     n_cities_processed = 0
+
+    # Used in the progress indicator
     total_cities = 0
     for country in load_feature_sets.get_countries():
         total_cities += len(load_feature_sets.get_cities(country))
@@ -119,23 +125,36 @@ elif mode == "Predict":
             # Manually split the data at an 80:20 ratio
             # We originally wanted to use sklearn's train_test_split
             #   function, but it had no way of disabling randomization
+            # Here, I did the split manually in preparation for creating
+            #   feature sets for future values (where predictions depend on
+            #   their previous values, i.e. their order matters)
             split_train = int(n_rows * 0.8)
             split_test = int(n_rows * 0.2)
             x_train = x.head(split_train)
-            y_train = x.head(split_train)
+            y_train = y.head(split_train)
             x_test = x.tail(split_test)
-            y_test = x.tail(split_test)
+            y_test = y.tail(split_test)
 
             # Train the model
             lasso_regression = Lasso(alpha=(1/cross_validated_c))
             lasso_regression.fit(x_train, y_train)
 
-            y_pred = lasso_regression.predict(x_test)
-            error = mean_squared_error(y_test, y_pred)
+            # Get the predictions done by the regression model
+            model_pred = lasso_regression.predict(x_test)
+            model_error = mean_squared_error(y_test, model_pred)
 
-            total_error += error
+            # Make the baseline predictions for the same x values
+            baseline_pred = x_test.mean(axis=1)
+            baseline_error = mean_squared_error(y_test, baseline_pred)
+
+            model_total_error += model_error
+            baseline_total_error += baseline_error
             n_cities_processed += 1
     
-    average_error = total_error / n_cities_processed
     print()
-    print("Average error: {}".format(average_error))
+
+    model_average_error = model_total_error / n_cities_processed
+    print("Model average error: {}".format(model_average_error))
+
+    baseline_average_error = baseline_total_error / n_cities_processed
+    print("Baseline average error: {}".format(baseline_average_error))
